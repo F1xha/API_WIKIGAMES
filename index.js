@@ -9,15 +9,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// --- CONEXIÓN A BASE DE DATOS (MONGODB) ---
-// Render buscará la variable MONGO_URI que acabas de configurar
-const MONGO_URI = process.env.MONGO_URI;
+// --- CONEXIÓN A BASE DE DATOS ---
+// En Render usará la variable oculta. En local usará tu link directo.
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://admin:admin123@cluster0.oxjknta.mongodb.net/wikigames?appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB Atlas'))
   .catch(err => console.error('❌ Error conectando a MongoDB:', err));
 
-// --- DEFINIR EL ESQUEMA (La forma de los datos) ---
+// --- MODELO DE DATOS ---
 const juegoSchema = new mongoose.Schema({
   title: String,
   developer: String,
@@ -33,7 +33,7 @@ const juegoSchema = new mongoose.Schema({
 
 const Juego = mongoose.model('Juego', juegoSchema);
 
-// --- ENDPOINTS ---
+// --- RUTAS (ENDPOINTS) ---
 
 app.get('/api/juegos', async (req, res) => {
     try {
@@ -47,7 +47,8 @@ app.get('/api/juegos', async (req, res) => {
 app.get('/api/juegos/:id', async (req, res) => {
     try {
         const juego = await Juego.findById(req.params.id);
-        juego ? res.json(juego) : res.status(404).json({ message: "No encontrado" });
+        if (!juego) return res.status(404).json({ message: "No encontrado" });
+        res.json(juego);
     } catch (error) {
         res.status(500).json({ message: "Error al buscar ID" });
     }
