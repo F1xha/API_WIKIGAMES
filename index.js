@@ -1,7 +1,7 @@
-require('dotenv').config(); // Para variables de entorno (opcional en local)
+require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose'); // 1. Importamos Mongoose
+const mongoose = require('mongoose'); // Importamos Mongoose
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,15 +9,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// --- 2. CONEXIÓN A BASE DE DATOS (MONGODB) ---
-// Si no hay variable de entorno, usa una local por defecto
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://invitado:invitado123@cluster0.dummy.mongodb.net/wikigames?retryWrites=true&w=majority";
+// --- CONEXIÓN A BASE DE DATOS (MONGODB) ---
+// Render buscará la variable MONGO_URI que acabas de configurar
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB Atlas'))
   .catch(err => console.error('❌ Error conectando a MongoDB:', err));
 
-// --- 3. DEFINIR EL ESQUEMA (La forma de los datos) ---
+// --- DEFINIR EL ESQUEMA (La forma de los datos) ---
 const juegoSchema = new mongoose.Schema({
   title: String,
   developer: String,
@@ -31,22 +31,19 @@ const juegoSchema = new mongoose.Schema({
   }
 });
 
-// El modelo es el que nos deja guardar/leer
 const Juego = mongoose.model('Juego', juegoSchema);
 
-// --- 4. ENDPOINTS MODIFICADOS PARA USAR LA DB ---
+// --- ENDPOINTS ---
 
-// GET: Obtener todos
 app.get('/api/juegos', async (req, res) => {
     try {
-        const juegos = await Juego.find(); // Busca en la base de datos real
+        const juegos = await Juego.find();
         res.json(juegos);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-// GET: Obtener uno por ID
 app.get('/api/juegos/:id', async (req, res) => {
     try {
         const juego = await Juego.findById(req.params.id);
@@ -56,32 +53,25 @@ app.get('/api/juegos/:id', async (req, res) => {
     }
 });
 
-// POST: Crear nuevo juego
 app.post('/api/juegos', async (req, res) => {
     try {
-        const nuevoJuego = new Juego(req.body); // Crea el objeto
-        await nuevoJuego.save(); // ¡LO GUARDA EN LA NUBE!
+        const nuevoJuego = new Juego(req.body);
+        await nuevoJuego.save();
         res.status(201).json(nuevoJuego);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 });
 
-// PUT: Actualizar
 app.put('/api/juegos/:id', async (req, res) => {
     try {
-        const juegoActualizado = await Juego.findByIdAndUpdate(
-            req.params.id, 
-            req.body, 
-            { new: true } // Devuelve el dato nuevo, no el viejo
-        );
+        const juegoActualizado = await Juego.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(juegoActualizado);
     } catch (error) {
         res.status(404).json({ message: "No se pudo editar" });
     }
 });
 
-// DELETE: Borrar
 app.delete('/api/juegos/:id', async (req, res) => {
     try {
         await Juego.findByIdAndDelete(req.params.id);
