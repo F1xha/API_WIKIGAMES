@@ -1,107 +1,96 @@
+require('dotenv').config(); // Para variables de entorno (opcional en local)
 const express = require('express');
 const cors = require('cors');
-const app = express();
+const mongoose = require('mongoose'); // 1. Importamos Mongoose
 
+const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json()); // Importante para recibir datos JSON
+app.use(express.json());
 
-// CAMBIO: Usamos 'let' para poder modificar la lista (simulando base de datos)
-let juegos = [
-  {
-    id: "the-witcher-3",
-    title: "The Witcher 3: Wild Hunt",
-    developer: "CD Projekt Red",
-    releaseDate: "2015-05-19",
-    genre: ["RPG", "Mundo Abierto"],
-    platforms: ["PC", "PS4", "PS5", "Xbox One"],
-    rating: 4.9,
-    description: "RPG de mundo abierto basado en la saga de Geralt de Rivia...",
-    images: {
-      cover: "https://sm.ign.com/ign_es/screenshot/default/the-witcher-3-next-gen_3vjv.jpg"
-    }
-  },
-  {
-    id: "elden-ring",
-    title: "Elden Ring",
-    developer: "FromSoftware",
-    releaseDate: "2022-02-25",
-    genre: ["Action RPG", "Mundo Abierto"],
-    platforms: ["PC", "PS4", "PS5", "Xbox Series X|S"],
-    rating: 4.8,
-    description: "La fórmula souls en un mundo abierto...",
-    images: {
-      cover: "https://image.api.playstation.com/vulcan/ap/rnd/202110/2000/YMUoJUYNX0xWk6eTKuZLr5Iw.jpg"
-    }
-  },
-  {
-    id: "god-of-war-2018",
-    title: "God of War (2018)",
-    developer: "Santa Monica Studio",
-    releaseDate: "2018-04-20",
-    genre: ["Acción", "Aventura"],
-    platforms: ["PS4", "PS5", "PC"],
-    rating: 4.9,
-    description: "Reinvención de la saga con enfoque en narrativa padre-hijo...",
-    images: {
-      cover: "https://image.api.playstation.com/vulcan/img/rnd/202010/2217/LsaVA5cwkpQ69707K1a5l7wQ.png"
-    }
-  },
-];
+// --- 2. CONEXIÓN A BASE DE DATOS (MONGODB) ---
+// Si no hay variable de entorno, usa una local por defecto
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://invitado:invitado123@cluster0.dummy.mongodb.net/wikigames?retryWrites=true&w=majority";
 
-// --- ENDPOINTS CRUD (Requisito del Examen) ---
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ Conectado a MongoDB Atlas'))
+  .catch(err => console.error('❌ Error conectando a MongoDB:', err));
 
-// 1. GET (Read) - Obtener todos
-app.get('/api/juegos', (req, res) => {
-    res.json(juegos);
+// --- 3. DEFINIR EL ESQUEMA (La forma de los datos) ---
+const juegoSchema = new mongoose.Schema({
+  title: String,
+  developer: String,
+  releaseDate: String,
+  genre: [String],
+  platforms: [String],
+  rating: Number,
+  description: String,
+  images: {
+    cover: String
+  }
 });
 
-// 2. GET (Read) - Obtener uno por ID
-app.get('/api/juegos/:id', (req, res) => {
-    const juego = juegos.find(j => j.id === req.params.id);
-    juego ? res.json(juego) : res.status(404).json({ message: "No encontrado" });
-});
+// El modelo es el que nos deja guardar/leer
+const Juego = mongoose.model('Juego', juegoSchema);
 
-// 3. POST (Create) - Crear nuevo juego
-app.post('/api/juegos', (req, res) => {
-    const nuevoJuego = req.body;
-    // Generamos un ID simple si no viene uno
-    if (!nuevoJuego.id) {
-        nuevoJuego.id = Date.now().toString(); 
-    }
-    juegos.push(nuevoJuego);
-    res.status(201).json(nuevoJuego); // 201 = Creado
-});
+// --- 4. ENDPOINTS MODIFICADOS PARA USAR LA DB ---
 
-// 4. PUT (Update) - Editar juego existente
-app.put('/api/juegos/:id', (req, res) => {
-    const id = req.params.id;
-    const datosNuevos = req.body;
-    
-    const index = juegos.findIndex(j => j.id === id);
-    if (index !== -1) {
-        // Actualizamos fusionando los datos anteriores con los nuevos
-        juegos[index] = { ...juegos[index], ...datosNuevos };
-        res.json(juegos[index]);
-    } else {
-        res.status(404).json({ message: "Juego no encontrado para editar" });
+// GET: Obtener todos
+app.get('/api/juegos', async (req, res) => {
+    try {
+        const juegos = await Juego.find(); // Busca en la base de datos real
+        res.json(juegos);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 
-// 5. DELETE (Delete) - Eliminar juego
-app.delete('/api/juegos/:id', (req, res) => {
-    const id = req.params.id;
-    const longitudInicial = juegos.length;
-    juegos = juegos.filter(j => j.id !== id);
-    
-    if (juegos.length < longitudInicial) {
+// GET: Obtener uno por ID
+app.get('/api/juegos/:id', async (req, res) => {
+    try {
+        const juego = await Juego.findById(req.params.id);
+        juego ? res.json(juego) : res.status(404).json({ message: "No encontrado" });
+    } catch (error) {
+        res.status(500).json({ message: "Error al buscar ID" });
+    }
+});
+
+// POST: Crear nuevo juego
+app.post('/api/juegos', async (req, res) => {
+    try {
+        const nuevoJuego = new Juego(req.body); // Crea el objeto
+        await nuevoJuego.save(); // ¡LO GUARDA EN LA NUBE!
+        res.status(201).json(nuevoJuego);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// PUT: Actualizar
+app.put('/api/juegos/:id', async (req, res) => {
+    try {
+        const juegoActualizado = await Juego.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true } // Devuelve el dato nuevo, no el viejo
+        );
+        res.json(juegoActualizado);
+    } catch (error) {
+        res.status(404).json({ message: "No se pudo editar" });
+    }
+});
+
+// DELETE: Borrar
+app.delete('/api/juegos/:id', async (req, res) => {
+    try {
+        await Juego.findByIdAndDelete(req.params.id);
         res.json({ message: "Juego eliminado correctamente" });
-    } else {
-        res.status(404).json({ message: "Juego no encontrado para eliminar" });
+    } catch (error) {
+        res.status(404).json({ message: "No se pudo eliminar" });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Servidor CRUD corriendo en puerto ${PORT}`);
+    console.log(`Servidor DB corriendo en puerto ${PORT}`);
 });
