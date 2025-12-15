@@ -1,25 +1,6 @@
 {
-  "name": "api_wikigames",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-  "start": "node index.js",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/F1xha/API_WIKIGAMES.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/F1xha/API_WIKIGAMES/issues"
-  },
-  "homepage": "https://github.com/F1xha/API_WIKIGAMES#readme",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.2.1"
+    "dotenv": "^17.2.3",
+    "mongoose": "^9.0.1"
   }
 }
