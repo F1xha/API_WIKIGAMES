@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// --- CONEXIÓN A BASE DE DATOS ---
+// --- CONEXIÓN A BASE DEd DATOS ---
 // En Render usará la variable oculta. En local usará tu link directo.
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://admin:admin123@cluster0.oxjknta.mongodb.net/wikigames?appName=Cluster0";
 
