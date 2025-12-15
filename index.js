@@ -2,14 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// Usar el puerto que nos asigne la nube (o 3000 si estamos en local)
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Importante para recibir datos JSON
 
-// --- BASE DE DATOS  ---
-const juegos = [
+// CAMBIO: Usamos 'let' para poder modificar la lista (simulando base de datos)
+let juegos = [
   {
     id: "the-witcher-3",
     title: "The Witcher 3: Wild Hunt",
@@ -49,33 +48,60 @@ const juegos = [
       cover: "https://image.api.playstation.com/vulcan/img/rnd/202010/2217/LsaVA5cwkpQ69707K1a5l7wQ.png"
     }
   },
-
 ];
 
-// --- RUTAS DE LA API ---
+// --- ENDPOINTS CRUD (Requisito del Examen) ---
 
-// 1. Ruta de bienvenida
-app.get('/', (req, res) => {
-    res.send('<h1>Bienvenido a la API de WikiGames</h1><p>Visita /api/juegos para ver los datos</p>');
-});
-
-// 2. Obtener todos los juegos
+// 1. GET (Read) - Obtener todos
 app.get('/api/juegos', (req, res) => {
     res.json(juegos);
 });
 
-// 3. Buscar juegos por ID
+// 2. GET (Read) - Obtener uno por ID
 app.get('/api/juegos/:id', (req, res) => {
+    const juego = juegos.find(j => j.id === req.params.id);
+    juego ? res.json(juego) : res.status(404).json({ message: "No encontrado" });
+});
+
+// 3. POST (Create) - Crear nuevo juego
+app.post('/api/juegos', (req, res) => {
+    const nuevoJuego = req.body;
+    // Generamos un ID simple si no viene uno
+    if (!nuevoJuego.id) {
+        nuevoJuego.id = Date.now().toString(); 
+    }
+    juegos.push(nuevoJuego);
+    res.status(201).json(nuevoJuego); // 201 = Creado
+});
+
+// 4. PUT (Update) - Editar juego existente
+app.put('/api/juegos/:id', (req, res) => {
     const id = req.params.id;
-    const juego = juegos.find(j => j.id === id);
-    if (juego) {
-        res.json(juego);
+    const datosNuevos = req.body;
+    
+    const index = juegos.findIndex(j => j.id === id);
+    if (index !== -1) {
+        // Actualizamos fusionando los datos anteriores con los nuevos
+        juegos[index] = { ...juegos[index], ...datosNuevos };
+        res.json(juegos[index]);
     } else {
-        res.status(404).json({ message: "Juego no encontrado" });
+        res.status(404).json({ message: "Juego no encontrado para editar" });
     }
 });
 
-// Iniciar servidor
+// 5. DELETE (Delete) - Eliminar juego
+app.delete('/api/juegos/:id', (req, res) => {
+    const id = req.params.id;
+    const longitudInicial = juegos.length;
+    juegos = juegos.filter(j => j.id !== id);
+    
+    if (juegos.length < longitudInicial) {
+        res.json({ message: "Juego eliminado correctamente" });
+    } else {
+        res.status(404).json({ message: "Juego no encontrado para eliminar" });
+    }
+});
+
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
+    console.log(`Servidor CRUD corriendo en puerto ${PORT}`);
 });
